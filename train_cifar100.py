@@ -52,6 +52,11 @@ def main():
     parser.add_argument('--onecycle', action='store_true', default=False, help='Trains with One Cycle LR scheduler')
     parser.add_argument('--cosine-lr', action='store_true', default=False, help='Trains BitChop with cosine LR updating')
 
+    parser.add_argument('--trace-weights', action='store_true', default=False, help='Save .npy files of weight traces')
+    parser.add_argument('--trace-activations', action='store_true', default=False, help='Save .npy files of activation traces')
+    parser.add_argument('--trace-gradients', action='store_true', default=False, help='Save .npy files of input and output gradient traces')
+    parser.add_argument('--trace-weight-updates', action='store_true', default=False, help='Save .npy files of weight update traces')
+
     args = parser.parse_args()
     use_cuda = not args.no_cuda and torch.cuda.is_available()
 

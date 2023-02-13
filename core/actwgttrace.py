@@ -13,7 +13,7 @@ import os
 import time
 
 class ActWeightTracer():
-	def __init__(self, model, network_name, start_save_at=0, save_every_ith=10, capture_maximum=10):
+	def __init__(self, model, network_name, time_string, trace_weights, trace_activations, start_save_at=0, save_every_ith=10, capture_maximum=10):
 
 		self._module_layer_map = dict()
 		self._save_activation_every_ith = None
@@ -25,9 +25,6 @@ class ActWeightTracer():
 		self._activation_save_map = dict()
 		self._activations_output_folder = "act_traces"
 		self._weights_output_folder = "weight_traces"
-
-		self._current_bitlength = 23
-		self._are_activations_and_weights_being_traced = True
 
 		# Ensure that integer arguments are indeed integers.
 		if not isinstance(start_save_at, int):
@@ -52,11 +49,15 @@ class ActWeightTracer():
 		self._activation_start_save_at = start_save_at
 		self._save_activation_every_ith = save_every_ith
 		self._activation_capture_maximum = capture_maximum
+		self._are_activations_and_weights_being_traced = True
+		self._trace_weights_active = trace_weights
+		self._trace_activations_active = trace_activations
 
-		timestr = time.strftime("_%Y%m%d_%H%M%S")
 
-		self._activations_output_folder = network_name + timestr + "/act_traces"
-		self._weights_output_folder = network_name + timestr + "/weight_traces"
+		#timestr = time.strftime("_%Y%m%d_%H%M%S")
+
+		self._activations_output_folder = network_name + time_string + "/act_traces"
+		self._weights_output_folder = network_name + time_string + "/weight_traces"
 
 		# Make a directory to hold these values.
 		Path(self._activations_output_folder).mkdir(parents=True, exist_ok=True)
@@ -65,7 +66,7 @@ class ActWeightTracer():
 		self._hook_activations("net", model)
 
 		# Save the model layout and the mapping to a file.
-		with open(Path("./" + network_name + timestr + "/modelmap.log"), "w+") as f:
+		with open(Path("./" + network_name + time_string + "/modelmap.log"), "w+") as f:
 			f.write(str(model)+"\n=================================\n\n")
 			for module, mapping in self._module_layer_map.items():
 				f.write(str(module)+":"+str(mapping)+"\n\n")
@@ -77,7 +78,7 @@ class ActWeightTracer():
 			type(module)
 			if module == model:
 				continue
-			if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear) or isinstance(module, Layered_MatMul):
+			if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear) or isinstance(module, nn.AvgPool2d) or isinstance(module, nn.ReLU) or isinstance(module, nn.BatchNorm2d):
 				if module in self._module_layer_map:
 					print("Error.")
 					exit(-1)
@@ -133,16 +134,18 @@ class ActWeightTracer():
 			self._activation_exec_map[module_name] += 1
 			return
 
-		activations_prefix = self._activations_output_folder + "/" + module_name + "_id" + str(current_fp_iter)
-		weights_prefix = self._weights_output_folder + "/" + module_name + "_id" + str(current_fp_iter) + "_"
+		activations_prefix = self._activations_output_folder + "/" + module_name + "_iter" + str(current_bpiter)
+		weights_prefix = self._weights_output_folder + "/" + module_name + "_iter" + str(current_bpiter) + "_"
 
-		state = module.state_dict()
-		for i in state:
-			# Conditionally select the state only if "weight" is in the parameter str.
-			if "weight" in i:
-				np.save(weights_prefix + i, state[i].cpu())
+		if self._trace_weights_active:
+			state = module.state_dict()
+			for i in state:
+				# Conditionally select the state only if "weight" is in the parameter str.
+				if "weight" in i:
+					np.save(weights_prefix + i, state[i].cpu())
 		
-		np.save(activations_prefix, outputs.clone().detach().cpu())
+		if self._trace_activations_active:
+			np.save(activations_prefix, outputs.clone().detach().cpu())
 
 		# Update the number of times this module has undergone forward propagation.
 		self._activation_exec_map[module_name] += 1
