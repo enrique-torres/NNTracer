@@ -1,18 +1,10 @@
 # general imports
-import sys
-import os
-import argparse
-import collections
-import numpy as np
+import copy
 from pathlib import Path
 from math import cos, pi
 
 # PyTorch imports
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from torchvision import models, datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 
 # Our imports
@@ -50,6 +42,13 @@ def train(epoch, train_loader):
 
 		if g_arguments.cosine_lr:
 			adjust_learning_rate_cosine(g_optimizer, epoch, batch_idx, len(train_loader))
+		
+		old_model = None
+		if g_arguments.trace_weight_updates:
+			#old_model = type(g_model)()
+			#old_model.load_state_dict(g_model.state_dict())
+			old_model = copy.deepcopy(g_model)
+		
 		# compute output
 		output = g_model(data)       
 		loss = g_criterion(output, target)
@@ -66,6 +65,9 @@ def train(epoch, train_loader):
 		# in case a scheduler is used to iterate per batch
 		if g_scheduler:
 			g_scheduler.step()
+
+		if g_arguments.trace_weight_updates:
+			g_wgtupdtracer.calculate_weight_updates(old_model, g_model, g_arguments.model)
 
 		steptime = 0
 		steptime = progress_bar(batch_idx, len(train_loader), 'Loss: %2.4f | Top-1: %6.3f%% | Top-5: %6.3f%%' % (losses.avg, top1.avg, top5.avg))
@@ -128,31 +130,35 @@ def train_test_loop(args, model, device, train_loader, val_loader, optimizer, cr
 		exit(1)
 
 	if g_arguments.trace_weights or g_arguments.trace_activations:
-		g_wgtacttracer = ActWeightTracer(g_model, 
+		g_wgtacttracer = ActWeightTracer(g_model,
+										g_arguments.model,
 										g_arguments.output_path, 
 										g_arguments.trace_weights, 
 										g_arguments.trace_activations,
 										g_arguments.tracing_start,
 										g_arguments.tracing_frequency,
-										g_arguments.tracing_limt)
+										g_arguments.tracing_limit)
 	if g_arguments.trace_gradients:
 		g_gradtracer = GradientTracer(g_model, 
+										g_arguments.model,
 										g_arguments.output_path, 
 										g_arguments.tracing_start,
 										g_arguments.tracing_frequency,
-										g_arguments.tracing_limt)
+										g_arguments.tracing_limit)
 	if g_arguments.trace_weight_updates:
 		g_wgtupdtracer = WeightUpdateTracer(g_model, 
+										g_arguments.model,
 										g_arguments.output_path, 
 										g_arguments.tracing_start,
 										g_arguments.tracing_frequency,
-										g_arguments.tracing_limt)
+										g_arguments.tracing_limit)
 	if g_arguments.trace_sparsity:
 		g_sparsitytracer = SparsityTracer(g_model, 
+										g_arguments.model,
 										g_arguments.output_path, 
 										g_arguments.tracing_start,
 										g_arguments.tracing_frequency,
-										g_arguments.tracing_limt)
+										g_arguments.tracing_limit)
 
 	last_trained_epoch = 0
 	if args.load_checkpoint is not None:

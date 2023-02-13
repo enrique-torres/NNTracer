@@ -190,13 +190,12 @@ class AverageMeter(object):
 		self.avg = self.sum / self.count
 
 def create_logging_folder(data_output_path):
-	output_path = "datacollection/" + data_output_path
-	Path(output_path).mkdir(parents=True, exist_ok=True)
+	Path(data_output_path).mkdir(parents=True, exist_ok=True)
 
 def write_to_trainlog(prefix, elems_to_log):
 	global train_csv_exists, train_step_counter
 
-	with open("datacollection/"+prefix+"/training_metrics.csv", 'a+', newline='', encoding='utf-8') as csvfile:
+	with open(prefix+"/training_metrics.csv", 'a+', newline='', encoding='utf-8') as csvfile:
 		# Create a writer object from csv module
 		csv_writer = writer(csvfile)
 		if not train_csv_exists:
@@ -212,7 +211,7 @@ def write_to_trainlog(prefix, elems_to_log):
 def write_to_testlog(prefix, elems_to_log):
 	global test_csv_exists, test_step_counter
 
-	with open("datacollection/"+prefix+"/testing_metrics.csv", 'a+', newline='', encoding='utf-8') as csvfile:
+	with open(prefix+"/testing_metrics.csv", 'a+', newline='', encoding='utf-8') as csvfile:
 		# Create a writer object from csv module
 		csv_writer = writer(csvfile)
 		if not test_csv_exists:

@@ -12,7 +12,7 @@ from csv import writer
 import os
 
 class SparsityTracer():
-	def __init__(self, model, output_path, start_save_at=0, save_every_ith=10, capture_maximum=10):
+	def __init__(self, model, network_name, output_path, start_save_at=0, save_every_ith=10, capture_maximum=10):
 
 		self._module_layer_map = dict()
 		self._save_activation_every_ith = None
@@ -24,6 +24,8 @@ class SparsityTracer():
 		self._activation_save_map = dict()
 		self._activations_output_folder = "activation_sparsity_traces"
 		self._weights_output_folder = "weight_sparsity_traces"
+
+		self._network_name = network_name
 
 		self._is_sparsity_being_traced = True
 
@@ -51,14 +53,14 @@ class SparsityTracer():
 		self._save_activation_every_ith = save_every_ith
 		self._activation_capture_maximum = capture_maximum
 
-		self._activations_output_folder = output_path + "/activity/activation_sparsity_traces"
-		self._weights_output_folder = output_path + "/activity/weight_sparsity_traces"
+		self._activations_output_folder = output_path + "/sparsity/activation_sparsity_traces"
+		self._weights_output_folder = output_path + "/sparsity/weight_sparsity_traces"
 
 		# Make a directory to hold these values.
 		Path(self._activations_output_folder).mkdir(parents=True, exist_ok=True)
 		Path(self._weights_output_folder).mkdir(parents=True, exist_ok=True)
 
-		self._hook_activations("net", model)
+		self._hook_activations(self._network_name, model)
 
 		# Save the model layout and the mapping to a file.
 		with open(output_path + "/modelmap.log", "w+") as f:
@@ -73,7 +75,6 @@ class SparsityTracer():
 	def _hook_activations(self, top_name, model):
 		layer_index = 0
 		for name, module in model.named_children():
-			type(module)
 			if module == model:
 				continue
 			if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear) or isinstance(module, nn.AvgPool2d) or isinstance(module, nn.ReLU) or isinstance(module, nn.BatchNorm2d):
@@ -134,6 +135,8 @@ class SparsityTracer():
 			self._activation_exec_map[module_name] += 1
 			return
 
+
+		print("Tracing sparsity for " + module_name)
 		# generate the traces and calculate the activity factor for the sign bit, compressed exponents and mantissa for both weights and activations
 		accum_zeroes_activations = 0
 		accum_elements_activations = 0
@@ -168,7 +171,6 @@ class SparsityTracer():
 				if create_first_row_csv:
 					csv_writer.writerow(["num_zeroes","num_total_elements","sparsity_ratio"])
 				csv_writer.writerow([accum_zeroes_activations, accum_elements_activations, (accum_zeroes_activations/accum_elements_activations)])
-				print([accum_zeroes_activations, accum_elements_activations, (accum_zeroes_activations/accum_elements_activations)])
 		except Exception as e:
 			print(e)
 
@@ -182,7 +184,6 @@ class SparsityTracer():
 				if create_first_row_csv:
 					csv_writer.writerow(["num_zeroes","num_total_elements","sparsity_ratio"])
 				csv_writer.writerow([accum_zeroes_weights, accum_elements_weights, (accum_zeroes_weights/accum_elements_weights)])
-				print([accum_zeroes_weights, accum_elements_weights, (accum_zeroes_weights/accum_elements_weights)])
 		except Exception as e:
 			print(e)
 

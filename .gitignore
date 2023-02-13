@@ -127,3 +127,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+# dataset and tracing data folders
+cifar100data/
+datacollection/

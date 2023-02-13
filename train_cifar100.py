@@ -54,7 +54,7 @@ def main():
 
     parser.add_argument('--trace-weights', action='store_true', default=False, help='Save .npy files of weight traces (default: False)')
     parser.add_argument('--trace-activations', action='store_true', default=False, help='Save .npy files of activation traces (default: False)')
-    parser.add_argument('--trace-gradients', action='store_true', default=False, help='Save .npy files of input and output gradient traces (default: False)')
+    parser.add_argument('--trace-gradients', action='store_true', default=True, help='Save .npy files of input and output gradient traces (default: False)')
     parser.add_argument('--trace-weight-updates', action='store_true', default=False, help='Save .npy files of weight update traces (default: False)')
     parser.add_argument('--trace-sparsity', action='store_true', default=False, help='Save .npy files of sparsity ratios for weights and activations (default: False)')
     parser.add_argument('--tracing-frequency', type=int, default=2000, metavar='tf', help='number of training iterations between each trace (default: 2000)')
@@ -111,7 +111,7 @@ def main():
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160], gamma=0.2)
     
     timestr = time.strftime("%Y%m%d_%H%M%S")
-    args.output_path = args.model + "_cifar100_" + timestr  
+    args.output_path = "datacollection/" + args.model + "_cifar100_" + timestr  
 
     train_test_loop(args, model, device, train_loader, test_loader, optimizer, criterion, scheduler, schedule_per_batch=False)
 

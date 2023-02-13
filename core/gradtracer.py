@@ -13,7 +13,7 @@ import os
 import time
 
 class GradientTracer():
-	def __init__(self, model, output_path, start_save_at=0, save_every_ith=10, capture_maximum=10):
+	def __init__(self, model, network_name, output_path, start_save_at=0, save_every_ith=10, capture_maximum=10):
 		
 		self._module_layer_map = dict()
 		self._save_gradients_every_ith = None
@@ -24,6 +24,8 @@ class GradientTracer():
 		self._gradients_exec_map = dict()
 		self._gradients_save_map = dict()
 		self._gradients_output_folder = "gradient_traces"
+
+		self._network_name = network_name
 
 		self._are_gradients_being_traced = True
 
@@ -57,7 +59,7 @@ class GradientTracer():
 
 		Path(self._gradients_output_folder).mkdir(parents=True, exist_ok=True)
 
-		self._hook_gradients("net", model)
+		self._hook_gradients(self._network_name, model)
 
 		# Save the model layout and the mapping to a file.
 		with open(output_path + "/modelmap.log", "w+") as f:
@@ -71,7 +73,6 @@ class GradientTracer():
 	def _hook_gradients(self, top_name, model):
 		layer_index = 0
 		for name, module in model.named_children():
-			type(module)
 			if module == model:
 				continue
 			if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear) or isinstance(module, nn.AvgPool2d) or isinstance(module, nn.ReLU) or isinstance(module, nn.BatchNorm2d):
@@ -131,8 +132,17 @@ class GradientTracer():
 		input_gradients_prefix = self._gradients_output_folder + "/" + module_name + "_ingrads_iter" + str(current_bpiter)
 		output_gradients_prefix = self._gradients_output_folder + "/" + module_name + "_outgrads_iter" + str(current_bpiter)
 
-		np.save(input_gradients_prefix, grad_input.clone().detach().cpu())
-		np.save(output_gradients_prefix, grad_output.clone().detach().cpu())
+		print("Tracing gradients for " + module_name)
+		if type(grad_input) == tuple:
+			for i, grad in enumerate(grad_input):
+				np.save(output_gradients_prefix + "_" + str(i), grad.clone().detach().cpu())
+		else:
+			np.save(input_gradients_prefix, grad_input.clone().detach().cpu())
+		if type(grad_output) == tuple:
+			for i, grad in enumerate(grad_output):
+				np.save(output_gradients_prefix + "_" + str(i), grad.clone().detach().cpu())
+		else:
+			np.save(output_gradients_prefix, grad_output.clone().detach().cpu())
 
 
 		# Update the number of times this module has undergone forward propagation.

@@ -13,7 +13,7 @@ import os
 import time
 
 class ActWeightTracer():
-	def __init__(self, model, output_path, trace_weights, trace_activations, start_save_at=0, save_every_ith=10, capture_maximum=10):
+	def __init__(self, model, network_name, output_path, trace_weights, trace_activations, start_save_at=0, save_every_ith=10, capture_maximum=10):
 
 		self._module_layer_map = dict()
 		self._save_activation_every_ith = None
@@ -25,6 +25,8 @@ class ActWeightTracer():
 		self._activation_save_map = dict()
 		self._activations_output_folder = "act_traces"
 		self._weights_output_folder = "weight_traces"
+
+		self._network_name = network_name
 
 		# Ensure that integer arguments are indeed integers.
 		if not isinstance(start_save_at, int):
@@ -53,9 +55,6 @@ class ActWeightTracer():
 		self._trace_weights_active = trace_weights
 		self._trace_activations_active = trace_activations
 
-
-		#timestr = time.strftime("_%Y%m%d_%H%M%S")
-
 		self._activations_output_folder = output_path + "/act_traces"
 		self._weights_output_folder = output_path + "/weight_traces"
 
@@ -63,7 +62,7 @@ class ActWeightTracer():
 		Path(self._activations_output_folder).mkdir(parents=True, exist_ok=True)
 		Path(self._weights_output_folder).mkdir(parents=True, exist_ok=True)
 
-		self._hook_activations("net", model)
+		self._hook_activations(self._network_name, model)
 
 		# Save the model layout and the mapping to a file.
 		with open(Path("./" + output_path + "/modelmap.log"), "w+") as f:
@@ -135,6 +134,7 @@ class ActWeightTracer():
 		weights_prefix = self._weights_output_folder + "/" + module_name + "_iter" + str(current_bpiter) + "_"
 
 		if self._trace_weights_active:
+			print("Tracing weights for " + module_name)
 			state = module.state_dict()
 			for i in state:
 				# Conditionally select the state only if "weight" is in the parameter str.
@@ -142,6 +142,7 @@ class ActWeightTracer():
 					np.save(weights_prefix + i, state[i].cpu())
 		
 		if self._trace_activations_active:
+			print("Tracing activations for " + module_name)
 			np.save(activations_prefix, outputs.clone().detach().cpu())
 
 		# Update the number of times this module has undergone forward propagation.

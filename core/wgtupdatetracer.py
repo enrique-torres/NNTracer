@@ -13,11 +13,15 @@ import os
 import time
 
 class WeightUpdateTracer():
-	def __init__(self, model, output_path, start_save_at=0, save_every_ith=10, capture_maximum=10):
+	def __init__(self, model, network_name, output_path, start_save_at=0, save_every_ith=10, capture_maximum=10):
+
+		self._module_layer_map = dict()
 
 		self._save_weight_updates_every_ith = None
 		self._weight_updates_capture_maximum = None
 		self._weight_updates_start_save_at = None
+
+		self._network_name = network_name
 
 		self._weight_updates_output_folder = "weight_updates_traces"
 
@@ -53,6 +57,8 @@ class WeightUpdateTracer():
 
 		Path(self._weight_updates_output_folder).mkdir(parents=True, exist_ok=True)
 
+		self._read_model_structure(self._network_name, model)
+
 		# Save the model layout and the mapping to a file.
 		with open(output_path + "/modelmap.log", "w+") as f:
 			f.write(str(model)+"\n=================================\n\n")
@@ -60,6 +66,18 @@ class WeightUpdateTracer():
 				f.write(str(module)+":"+str(mapping)+"\n\n")
 
 		print("Will do weight update tracing")
+
+	def _read_model_structure(self, top_name, model):
+		for name, module in model.named_children():
+			if module == model:
+				continue
+			if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear) or isinstance(module, nn.AvgPool2d) or isinstance(module, nn.ReLU) or isinstance(module, nn.BatchNorm2d):
+				if module in self._module_layer_map:
+					print("Error.")
+					exit(-1)
+				self._module_layer_map[module] = top_name + "_" + name
+			else:
+				self._read_model_structure(top_name + "_" + name, module)
 
 	def set_tracing_state(self, state: bool):
 		self._are_weight_updates_being_traced = state
@@ -73,7 +91,7 @@ class WeightUpdateTracer():
 			return
 
 		if self._are_weight_updates_being_traced:
-			model_after_update_children = model_after_update.named_children()
+			model_after_update_children = {name:module for name,module in model_after_update.named_children()}
 			for name, module in model_before_update.named_children():
 				if module == model_before_update:
 					continue
@@ -82,13 +100,16 @@ class WeightUpdateTracer():
 					for i in state:
 						# Conditionally select the state only if "weight" is in the parameter str.
 						if "weight" in i:
-							module_weight_update = state[i].cpu() - model_after_update_children[name].state_dict()[i].cpu()
-							np.save(self._weight_updates_output_folder + "/" + top_name + "_" + name + "" + i, module_weight_update)
+							after_update_state_dict = model_after_update_children[name].state_dict()
+							module_weight_update = state[i].cpu() - after_update_state_dict[i].cpu()
+							np.save(self._weight_updates_output_folder + "/" + top_name + "_" + name + "_weightupd", module_weight_update)
 				else:
-					self._recursive_calculate_weight_updates(module, model_after_update_children[name], top_name + "_" + name, module)
+					self._recursive_calculate_weight_updates(module, model_after_update_children[name], top_name + "_" + name)
+
+			self._current_bpiter += 1
 	
 	def _recursive_calculate_weight_updates(self, module_before_update, module_after_update, top_name):
-		module_after_update_children = module_after_update.named_children()
+		module_after_update_children = {name:module for name,module in module_after_update.named_children()}
 		for name, module in module_before_update.named_children():
 				if module == module_before_update:
 					continue
@@ -97,7 +118,8 @@ class WeightUpdateTracer():
 					for i in state:
 						# Conditionally select the state only if "weight" is in the parameter str.
 						if "weight" in i:
-							module_weight_update = state[i].cpu() - module_after_update_children[name].state_dict()[i].cpu()
-							np.save(self._weight_updates_output_folder + "/" + top_name + "_" + name + "" + i, module_weight_update)
+							after_update_state_dict = module_after_update_children[name].state_dict()
+							module_weight_update = state[i].cpu() - after_update_state_dict[i].cpu()
+							np.save(self._weight_updates_output_folder + "/" + top_name + "_" + name + "_weightupd", module_weight_update)
 				else:
-					self._recursive_calculate_weight_updates(module, module_after_update_children[name], top_name + "_" + name, module)
+					self._recursive_calculate_weight_updates(module, module_after_update_children[name], top_name + "_" + name)
