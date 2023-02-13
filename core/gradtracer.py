@@ -12,8 +12,8 @@ from csv import writer
 import os
 import time
 
-class GradientTrace():
-	def __init__(self, model, network_name, time_string, start_save_at=0, save_every_ith=10, capture_maximum=10):
+class GradientTracer():
+	def __init__(self, model, output_path, start_save_at=0, save_every_ith=10, capture_maximum=10):
 		
 		self._module_layer_map = dict()
 		self._save_gradients_every_ith = None
@@ -53,11 +53,18 @@ class GradientTrace():
 
 		#timestr = time.strftime("_%Y%m%d_%H%M%S")
 
-		self._gradients_output_folder = network_name + time_string + "/gradient_traces"
+		self._gradients_output_folder = output_path + "/gradient_traces"
 
 		Path(self._gradients_output_folder).mkdir(parents=True, exist_ok=True)
 
 		self._hook_gradients("net", model)
+
+		# Save the model layout and the mapping to a file.
+		with open(output_path + "/modelmap.log", "w+") as f:
+			f.write(str(model)+"\n=================================\n\n")
+			for module, mapping in self._module_layer_map.items():
+				f.write(str(module)+":"+str(mapping)+"\n\n")
+
 		print("Created hooks to trace gradients!")
 		
 

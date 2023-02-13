@@ -17,6 +17,10 @@ from torch.optim.lr_scheduler import StepLR
 
 # Our imports
 from core.utils import *
+from core.actwgttracer import *
+from core.wgtupdatetracer import *
+from core.gradtracer import *
+from core.sparsitytracer import *
 
 g_arguments = None
 g_model = None
@@ -24,9 +28,13 @@ g_device = None
 g_optimizer = None
 g_criterion = None
 g_scheduler = None
+g_wgtacttracer = None
+g_wgtupdtracer = None
+g_gradtracer = None
+g_sparsitytracer = None
 
 def train(epoch, train_loader):
-	global g_arguments, g_model, g_device, g_optimizer, g_criterion, g_scheduler
+	global g_arguments, g_model, g_device, g_optimizer, g_criterion, g_scheduler, g_wgtacttracer, g_wgtupdtracer, g_gradtracer, g_sparsitytracer
 
 	print('\nEpoch: %2d' % epoch)
 	g_model.train()
@@ -69,7 +77,7 @@ def train(epoch, train_loader):
 
 
 def test(test_loader):
-	global g_arguments, g_model, g_device, g_optimizer, g_criterion, g_scheduler
+	global g_arguments, g_model, g_device, g_optimizer, g_criterion, g_scheduler, g_wgtacttracer, g_wgtupdtracer, g_gradtracer, g_sparsitytracer
 
 	g_model.eval()
 
@@ -95,7 +103,7 @@ def test(test_loader):
 	write_to_testlog(g_arguments.output_path, metrics)
 
 def train_test_loop(args, model, device, train_loader, val_loader, optimizer, criterion, scheduler, schedule_per_batch=False):
-	global g_arguments, g_model, g_device, g_optimizer, g_criterion, g_scheduler
+	global g_arguments, g_model, g_device, g_optimizer, g_criterion, g_scheduler, g_wgtacttracer, g_wgtupdtracer, g_gradtracer, g_sparsitytracer
 
 	g_arguments = args
 	g_model = model
@@ -119,6 +127,32 @@ def train_test_loop(args, model, device, train_loader, val_loader, optimizer, cr
 		print("No criterion given to training process, exiting.")
 		exit(1)
 
+	if g_arguments.trace_weights or g_arguments.trace_activations:
+		g_wgtacttracer = ActWeightTracer(g_model, 
+										g_arguments.output_path, 
+										g_arguments.trace_weights, 
+										g_arguments.trace_activations,
+										g_arguments.tracing_start,
+										g_arguments.tracing_frequency,
+										g_arguments.tracing_limt)
+	if g_arguments.trace_gradients:
+		g_gradtracer = GradientTracer(g_model, 
+										g_arguments.output_path, 
+										g_arguments.tracing_start,
+										g_arguments.tracing_frequency,
+										g_arguments.tracing_limt)
+	if g_arguments.trace_weight_updates:
+		g_wgtupdtracer = WeightUpdateTracer(g_model, 
+										g_arguments.output_path, 
+										g_arguments.tracing_start,
+										g_arguments.tracing_frequency,
+										g_arguments.tracing_limt)
+	if g_arguments.trace_sparsity:
+		g_sparsitytracer = SparsityTracer(g_model, 
+										g_arguments.output_path, 
+										g_arguments.tracing_start,
+										g_arguments.tracing_frequency,
+										g_arguments.tracing_limt)
 
 	last_trained_epoch = 0
 	if args.load_checkpoint is not None:
@@ -138,8 +172,29 @@ def train_test_loop(args, model, device, train_loader, val_loader, optimizer, cr
 				print("Last LR value: " + str(g_scheduler.get_last_lr()))
 			else:
 				print("Last LR value: " + str(g_optimizer.param_groups[0]['lr']))
+		# turn on tracing only for training. If tracing for testing is necessary,
+		# then remove the lines after train(epoch, train loader) 
+		if g_wgtacttracer is not None:
+			g_wgtacttracer.set_tracing_state(g_arguments.trace_training)
+		if g_gradtracer is not None:
+			g_gradtracer.set_tracing_state(g_arguments.trace_training)
+		if g_wgtupdtracer is not None:
+			g_wgtupdtracer.set_tracing_state(g_arguments.trace_training)
+		if g_sparsitytracer is not None:
+			g_sparsitytracer.set_tracing_state(g_arguments.trace_training)
 		# train for one epoch
 		train(epoch, train_loader)
+
+		# turn off tracing for testing, we are not interested
+		if g_wgtacttracer is not None:
+			g_wgtacttracer.set_tracing_state(g_arguments.trace_testing)
+		if g_gradtracer is not None:
+			g_gradtracer.set_tracing_state(g_arguments.trace_testing)
+		if g_wgtupdtracer is not None:
+			g_wgtupdtracer.set_tracing_state(g_arguments.trace_testing)
+		if g_sparsitytracer is not None:
+			g_sparsitytracer.set_tracing_state(g_arguments.trace_testing)
+
 		# test on validation set
 		test(val_loader)
 
