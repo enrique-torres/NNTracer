@@ -24,9 +24,10 @@ g_wgtacttracer = None
 g_wgtupdtracer = None
 g_gradtracer = None
 g_sparsitytracer = None
+g_exponentstracer = None
 
 def train(epoch, train_loader):
-	global g_arguments, g_model, g_device, g_optimizer, g_criterion, g_scheduler, g_wgtacttracer, g_wgtupdtracer, g_gradtracer, g_sparsitytracer
+	global g_arguments, g_model, g_device, g_optimizer, g_criterion, g_scheduler, g_wgtacttracer, g_wgtupdtracer, g_gradtracer, g_sparsitytracer, g_exponentstracer
 
 	print('\nEpoch: %2d' % epoch)
 	g_model.train()
@@ -79,7 +80,7 @@ def train(epoch, train_loader):
 
 
 def test(test_loader):
-	global g_arguments, g_model, g_device, g_optimizer, g_criterion, g_scheduler, g_wgtacttracer, g_wgtupdtracer, g_gradtracer, g_sparsitytracer
+	global g_arguments, g_model, g_device, g_optimizer, g_criterion, g_scheduler, g_wgtacttracer, g_wgtupdtracer, g_gradtracer, g_sparsitytracer, g_exponentstracer
 
 	g_model.eval()
 
@@ -105,7 +106,7 @@ def test(test_loader):
 	write_to_testlog(g_arguments.output_path, metrics)
 
 def train_test_loop(args, model, device, train_loader, val_loader, optimizer, criterion, scheduler, schedule_per_batch=False):
-	global g_arguments, g_model, g_device, g_optimizer, g_criterion, g_scheduler, g_wgtacttracer, g_wgtupdtracer, g_gradtracer, g_sparsitytracer
+	global g_arguments, g_model, g_device, g_optimizer, g_criterion, g_scheduler, g_wgtacttracer, g_wgtupdtracer, g_gradtracer, g_sparsitytracer, g_exponentstracer
 
 	g_arguments = args
 	g_model = model
@@ -159,6 +160,13 @@ def train_test_loop(args, model, device, train_loader, val_loader, optimizer, cr
 										g_arguments.tracing_start,
 										g_arguments.tracing_frequency,
 										g_arguments.tracing_limit)
+	if g_arguments.trace_exponents:
+		g_exponentstracer = ActWeightExponentsTracer(g_model, 
+										g_arguments.model,
+										g_arguments.output_path, 
+										g_arguments.tracing_start,
+										g_arguments.tracing_frequency,
+										g_arguments.tracing_limit)
 
 	last_trained_epoch = 0
 	if args.load_checkpoint is not None:
@@ -188,6 +196,8 @@ def train_test_loop(args, model, device, train_loader, val_loader, optimizer, cr
 			g_wgtupdtracer.set_tracing_state(g_arguments.trace_training)
 		if g_sparsitytracer is not None:
 			g_sparsitytracer.set_tracing_state(g_arguments.trace_training)
+		if g_exponentstracer is not None:
+			g_exponentstracer.set_tracing_state(g_arguments.trace_training)
 		# train for one epoch
 		train(epoch, train_loader)
 
@@ -200,6 +210,8 @@ def train_test_loop(args, model, device, train_loader, val_loader, optimizer, cr
 			g_wgtupdtracer.set_tracing_state(g_arguments.trace_testing)
 		if g_sparsitytracer is not None:
 			g_sparsitytracer.set_tracing_state(g_arguments.trace_testing)
+		if g_exponentstracer is not None:
+			g_exponentstracer.set_tracing_state(g_arguments.trace_testing)
 
 		# test on validation set
 		test(val_loader)

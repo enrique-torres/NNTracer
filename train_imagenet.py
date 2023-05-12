@@ -58,8 +58,21 @@ parser.add_argument('--gpu', type=str, default="0",
 parser.add_argument('--load-checkpoint', type=str, default=None, help='Load checkpoint from given path (default: None)')
 parser.add_argument('--save-checkpoint', action='store_true', default=False, help='Save checkpoints after training each epoch')
 
+parser.add_argument('--trace-weights', action='store_true', default=False, help='Save .npy files of weight traces (default: False)')
+parser.add_argument('--trace-activations', action='store_true', default=False, help='Save .npy files of activation traces (default: False)')
+parser.add_argument('--trace-gradients', action='store_true', default=True, help='Save .npy files of input and output gradient traces (default: False)')
+parser.add_argument('--trace-weight-updates', action='store_true', default=False, help='Save .npy files of weight update traces (default: False)')
+parser.add_argument('--trace-sparsity', action='store_true', default=False, help='Save .npy files of sparsity ratios for weights and activations (default: False)')
+parser.add_argument('--trace-exponents', action='store_true', default=False, help='Save .csv files of exponent values for weights and activations (default: False)')
+parser.add_argument('--tracing-frequency', type=int, default=2000, metavar='tf', help='number of training iterations between each trace (default: 2000)')
+parser.add_argument('--tracing-start', type=int, default=0, metavar='ts', help='number of training iterations before tracing starts (default: 0)') 
+parser.add_argument('--tracing-limit', type=int, default=50, metavar='tl', help='maximum number of traces to capture (default: 50)') 
+
 parser.add_argument('--onecycle', action='store_true', default=False, help='Trains with One Cycle LR scheduler')
 parser.add_argument('--cosine-lr', action='store_true', default=False, help='Trains BitChop with cosine LR updating')
+
+parser.add_argument('--trace-training', action='store_true', default=True, help='Generate traces for the training portion of the process (default: True)')
+parser.add_argument('--trace-testing', action='store_true', default=False, help='Generate traces for the testing portion of the process (default: False)')
 
 
 def main():
@@ -96,7 +109,6 @@ def main_worker(gpu, args):
 	print("=> creating model '{}'".format(args.model))
 	model = models.__dict__[args.model]()
 	model = model.to(device)
-	timestr = time.strftime("%Y%m%d_%H%M%S_")
 
 	# define loss function (criterion) and optimizer
 	criterion = nn.CrossEntropyLoss().cuda(args.gpu)
@@ -143,10 +155,10 @@ def main_worker(gpu, args):
 	else:
 		scheduler = None
 
-	timestr = time.strftime("%Y%m%d_%H%M%S_")
-    args.output_path = args.model + "_imagenet_" + timestr
+	timestr = time.strftime("%Y%m%d_%H%M%S")
+	args.output_path = args.model + "_imagenet_" + timestr
 
-	train_test_loop(args, model, device, train_loader, test_loader, optimizer, criterion, scheduler, schedule_per_batch=False)
+	train_test_loop(args, model, device, train_loader, val_loader, optimizer, criterion, scheduler, schedule_per_batch=False)
 
 if __name__ == '__main__':
 	main()
