@@ -13,6 +13,7 @@ from core.actwgttracer import *
 from core.wgtupdatetracer import *
 from core.gradtracer import *
 from core.sparsitytracer import *
+from core.actwgttracer_exponents import *
 
 g_arguments = None
 g_model = None
