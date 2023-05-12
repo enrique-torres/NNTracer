@@ -54,14 +54,14 @@ def main():
 
     parser.add_argument('--trace-weights', action='store_true', default=False, help='Save .npy files of weight traces (default: False)')
     parser.add_argument('--trace-activations', action='store_true', default=False, help='Save .npy files of activation traces (default: False)')
-    parser.add_argument('--trace-gradients', action='store_true', default=True, help='Save .npy files of input and output gradient traces (default: False)')
+    parser.add_argument('--trace-gradients', action='store_true', default=False, help='Save .npy files of input and output gradient traces (default: False)')
     parser.add_argument('--trace-weight-updates', action='store_true', default=False, help='Save .npy files of weight update traces (default: False)')
     parser.add_argument('--trace-sparsity', action='store_true', default=False, help='Save .npy files of sparsity ratios for weights and activations (default: False)')
     parser.add_argument('--tracing-frequency', type=int, default=2000, metavar='tf', help='number of training iterations between each trace (default: 2000)')
     parser.add_argument('--tracing-start', type=int, default=0, metavar='ts', help='number of training iterations before tracing starts (default: 0)') 
     parser.add_argument('--tracing-limit', type=int, default=50, metavar='tl', help='maximum number of traces to capture (default: 50)') 
 
-    parser.add_argument('--trace-training', action='store_true', default=True, help='Generate traces for the training portion of the process (default: True)')
+    parser.add_argument('--trace-training', action='store_true', default=False, help='Generate traces for the training portion of the process (default: True)')
     parser.add_argument('--trace-testing', action='store_true', default=False, help='Generate traces for the testing portion of the process (default: False)')
 
 
