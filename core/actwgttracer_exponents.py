@@ -149,13 +149,29 @@ class ActWeightExponentsTracer():
 		
 		if self._trace_activations_active:
 			print("Tracing activations for " + module_name)
-			value_as_int = outputs.clone().detach().cpu().view(np.int32)
-			exp_bits = (value_as_int >> 23)&0xFF
-			activations_hist, _ = np.histogram(exp_bits, bins=range(0, 256))
-			activations_exponents_num = activations_hist.tolist()
-			with open(activations_prefix, 'a+', newline='', encoding='utf-8') as csvfile:
-				csv_writer = writer(csvfile)
-				csv_writer.writerow(activations_exponents_num)
+			if type(outputs) == torch.Tensor:
+				value_as_int = outputs.clone().detach().cpu().view(np.int32)
+				exp_bits = (value_as_int >> 23)&0xFF
+				activations_hist, _ = np.histogram(exp_bits, bins=range(0, 256))
+				activations_exponents_num = activations_hist.tolist()
+				with open(activations_prefix, 'a+', newline='', encoding='utf-8') as csvfile:
+					csv_writer = writer(csvfile)
+					csv_writer.writerow(activations_exponents_num)
+			elif type(outputs) == tuple:
+				value_as_int_0 = outputs[0].clone().detach().cpu().view(np.int32)
+				exp_bits_0 = (value_as_int_0 >> 23)&0xFF
+				activations_hist_0, _ = np.histogram(exp_bits_0, bins=range(0, 256))
+				activations_exponents_num_0 = activations_hist_0.tolist()
+				with open(activations_prefix + "_0", 'a+', newline='', encoding='utf-8') as csvfile:
+					csv_writer = writer(csvfile)
+					csv_writer.writerow(activations_exponents_num_0)
+				value_as_int_1 = outputs[1].clone().detach().cpu().view(np.int32)
+				exp_bits_1 = (value_as_int_1 >> 23)&0xFF
+				activations_hist_1, _ = np.histogram(exp_bits_1, bins=range(0, 256))
+				activations_exponents_num_1 = activations_hist_1.tolist()
+				with open(activations_prefix + "_1", 'a+', newline='', encoding='utf-8') as csvfile:
+					csv_writer = writer(csvfile)
+					csv_writer.writerow(activations_exponents_num_1)
 
 		# Update the number of times this module has undergone forward propagation.
 		self._activation_exec_map[module_name] += 1
