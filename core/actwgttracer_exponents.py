@@ -13,7 +13,7 @@ import os
 import time
 
 class ActWeightExponentsTracer():
-	def __init__(self, model, network_name, output_path, trace_weights, trace_activations, start_save_at=0, save_every_ith=10, capture_maximum=10):
+	def __init__(self, model, network_name, output_path, start_save_at=0, save_every_ith=10, capture_maximum=10):
 
 		self._module_layer_map = dict()
 		self._save_activation_every_ith = None
@@ -52,8 +52,8 @@ class ActWeightExponentsTracer():
 		self._save_activation_every_ith = save_every_ith
 		self._activation_capture_maximum = capture_maximum
 		self._are_activations_and_weights_being_traced = True
-		self._trace_weights_active = trace_weights
-		self._trace_activations_active = trace_activations
+		self._trace_weights_active = True
+		self._trace_activations_active = True
 
 		self._activations_output_folder = output_path + "/act_traces"
 		self._weights_output_folder = output_path + "/weight_traces"
