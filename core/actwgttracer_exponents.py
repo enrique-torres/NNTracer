@@ -130,8 +130,8 @@ class ActWeightExponentsTracer():
 			self._activation_exec_map[module_name] += 1
 			return
 
-		activations_prefix = self._activations_output_folder + "/" + module_name + "_iter" + str(current_bpiter)
-		weights_prefix = self._weights_output_folder + "/" + module_name + "_iter" + str(current_bpiter) + "_"
+		activations_prefix = self._activations_output_folder + "/" + module_name
+		weights_prefix = self._weights_output_folder + "/" + module_name + "_"
 
 		if self._trace_weights_active:
 			print("Tracing weights for " + module_name)
