@@ -156,7 +156,7 @@ def main_worker(gpu, args):
 		scheduler = None
 
 	timestr = time.strftime("%Y%m%d_%H%M%S")
-	args.output_path = args.model + "_imagenet_" + timestr
+	args.output_path = "datacollection/" + args.model + "_imagenet_" + timestr
 
 	train_test_loop(args, model, device, train_loader, val_loader, optimizer, criterion, scheduler, schedule_per_batch=False)
 
