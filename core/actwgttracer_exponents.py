@@ -150,7 +150,7 @@ class ActWeightExponentsTracer():
 		if self._trace_activations_active:
 			print("Tracing activations for " + module_name)
 			if type(outputs) == torch.Tensor:
-				value_as_int = outputs.clone().detach().cpu().view(np.int32)
+				value_as_int = outputs.clone().detach().cpu().numpy().view(np.int32)
 				exp_bits = (value_as_int >> 23)&0xFF
 				activations_hist, _ = np.histogram(exp_bits, bins=range(0, 256))
 				activations_exponents_num = activations_hist.tolist()
