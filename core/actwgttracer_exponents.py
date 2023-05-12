@@ -139,7 +139,7 @@ class ActWeightExponentsTracer():
 			for i in state:
 				# Conditionally select the state only if "weight" is in the parameter str.
 				if "weight" in i:
-					value_as_int = state[i].cpu().view(np.int32)
+					value_as_int = state[i].cpu().numpy().view(np.int32)
 					exp_bits = (value_as_int >> 23)&0xFF
 					weight_hist, _ = np.histogram(exp_bits, bins=range(0, 256))
 					weights_exponents_num = weight_hist.tolist()
